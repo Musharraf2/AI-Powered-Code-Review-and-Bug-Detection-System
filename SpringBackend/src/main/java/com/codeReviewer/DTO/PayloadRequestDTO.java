@@ -6,8 +6,10 @@ import lombok.Data;
 @Data
 public class PayloadRequestDTO {
     @JsonProperty("id")
-    private String id;
+    private String providedId; // Catch the frontend ID here
+
     private String code;
+
     @JsonProperty("AdditionalInformation")
-    private String AdditionalInformation;
+    private String additionalInformation; // camelCase
 }

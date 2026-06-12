@@ -1,5 +1,6 @@
 package com.codeReviewer.Controller;
 
+import com.codeReviewer.DTO.PayloadRequestDTO;
 import com.codeReviewer.Entity.TestEntity;
 import com.codeReviewer.Service.TestService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,16 +19,19 @@ public class TestController {
         this.testService = testService;
     }
 
-
+//  1.
     @GetMapping("/showcode")
     private List<TestEntity> putCode() {
         return testService.showAllCode();
     }
 
-    @PutMapping("/save")
-    private TestEntity saveCode(@RequestBody TestEntity testEntity) {
-        // Now you are passing a TestEntity object to your service, matching what it wants!
-        return testService.saveCode(testEntity);
+
+//    2.
+    @PostMapping("/save") // Changed from PutMapping to PostMapping (standard for creation)
+    public String saveCode(@RequestBody PayloadRequestDTO requestDTO) {
+        // Pass the DTO to the service to handle the conversion and saving
+        testService.processAndSave(requestDTO);
+        return "Data successfully converted and saved!";
     }
 
 }
