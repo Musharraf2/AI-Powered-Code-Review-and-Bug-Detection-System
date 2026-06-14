@@ -27,7 +27,7 @@ public class TestService {
 
 
     //    2.
-    public void processAndSave(PayloadRequestDTO dto) {
+    public String processAndSave(PayloadRequestDTO dto) {
         // 1. Format the text for LangChain
         String plainTextForAI = "[Code Review Document]\n" +
                 "ID: " + dto.getProvidedId() + "\n" +
@@ -52,9 +52,12 @@ public class TestService {
             // We send the 'savedEntity' because it now contains your processedText!
             String response = restTemplate.postForObject(pythonApiUrl, savedEntity, String.class);
             System.out.println("Successfully sent to LangChain: " + response);
+            // 2. Return the Python response back to the Controller
+            return response;
 
         } catch (Exception e) {
             System.out.println("Failed to send to LangChain: " + e.getMessage());
+            return "{\"status\": \"Error\", \"message\": \"Failed to forward from Spring to Python: " + e.getMessage() + "\"}";
         }
     }
 }
