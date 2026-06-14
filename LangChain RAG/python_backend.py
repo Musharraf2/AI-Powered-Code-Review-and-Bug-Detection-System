@@ -1,29 +1,27 @@
-#%%
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_ollama import OllamaEmbeddings
 from dotenv import load_dotenv
 import os
-#%%
+
 load_dotenv()
-#%%
+
 print("Loading Ollama Embeddings.It may take a few seconds or minutes ...")
-# Initialize the embedding model
 embeddings = OllamaEmbeddings(
     model="nomic-embed-text",
     dimensions=1024,
 )
-#%%
-# We will store our FAISS database in this variable
+
+
 vector_store = None
 FAISS_INDEX_PATH = "faiss_index"
-#%%
+
 def process_and_embed(doc_id: int, provided_id: str, code: str, additional_info: str, text: str):
-    # 1. Create Document (This creates 'doc' locally inside the function)
+
     doc = Document(
         page_content=text,
         metadata={
@@ -34,7 +32,6 @@ def process_and_embed(doc_id: int, provided_id: str, code: str, additional_info:
         }
     )
 
-    # 2. Split Document into chunks (Now it can read 'doc' because they are in the same scope!)
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
         chunk_overlap=100
@@ -59,8 +56,7 @@ def process_and_embed(doc_id: int, provided_id: str, code: str, additional_info:
     vector_store.save_local(FAISS_INDEX_PATH)
 
     return len(chunks)
-#%%
-# 1. Run your modified function that returns the list of chunks
+
 chunks_list = process_and_embed(
     doc_id=1,
     provided_id="TEST_001",
@@ -69,14 +65,6 @@ chunks_list = process_and_embed(
     text="This is the main processed text that will be chunked and embedded by Ollama."
 )
 
-#%%
-# 2. Check how many total chunks were created
 print(f"Total number of chunks: {chunks_list.__sizeof__()}")
 
-# # 3. Loop through each chunk to see its text length and characters
-# for i, chunk in enumerate(chunks_list):
-#     print(f"\n--- Chunk {i + 1} ---")
-#     print(f"Character Length: {len(chunk.page_content)}")
-#     print(f"Content: {chunk.page_content}")
-#     print(f"Metadata attached: {chunk.metadata}")
 
