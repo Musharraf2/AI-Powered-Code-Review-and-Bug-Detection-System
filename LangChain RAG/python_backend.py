@@ -79,4 +79,4 @@ print(f"Total number of chunks: {chunks_list.__sizeof__()}")
 #     print(f"Character Length: {len(chunk.page_content)}")
 #     print(f"Content: {chunk.page_content}")
 #     print(f"Metadata attached: {chunk.metadata}")
-#%%
+
