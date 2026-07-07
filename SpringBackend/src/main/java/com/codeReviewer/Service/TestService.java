@@ -52,12 +52,35 @@ public class TestService {
             // We send the 'savedEntity' because it now contains your processedText!
             String response = restTemplate.postForObject(pythonApiUrl, savedEntity, String.class);
             System.out.println("Successfully sent to LangChain: " + response);
+
+            // Save the analysis results returned from Python back to the PostgreSQL database
+            savedEntity.setAnalysisResult(response);
+            testRepository.save(savedEntity);
+
             // 2. Return the Python response back to the Controller
             return response;
 
         } catch (Exception e) {
             System.out.println("Failed to send to LangChain: " + e.getMessage());
-            return "{\"status\": \"Error\", \"message\": \"Failed to forward from Spring to Python: " + e.getMessage() + "\"}";
+            // Create a fallback analysis result in case Python is down, so the frontend doesn't break
+            String fallbackResponse = "{"
+                    + "\"code\": \"" + dto.getCode().replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "") + "\","
+                    + "\"highlights\": [],"
+                    + "\"issues\": [{"
+                    + "  \"id\": \"fallback-err\","
+                    + "  \"agent\": \"System\","
+                    + "  \"severity\": \"warning\","
+                    + "  \"line\": 1,"
+                    + "  \"title\": \"LangChain Offline\","
+                    + "  \"description\": \"Could not reach LangChain Python backend. Review is generated as offline fallback. Error: " + e.getMessage().replace("\"", "\\\"") + "\","
+                    + "  \"oldCode\": \"\","
+                    + "  \"newCode\": \"\""
+                    + "}],"
+                    + "\"metrics\": {\"security\": 0, \"bugs\": 0, \"quality\": 0, \"improvements\": 1}"
+                    + "}";
+            savedEntity.setAnalysisResult(fallbackResponse);
+            testRepository.save(savedEntity);
+            return fallbackResponse;
         }
     }
 }

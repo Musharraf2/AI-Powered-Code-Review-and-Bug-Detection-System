@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "./Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -15,6 +15,7 @@ import {
   Eye,
   Trash2,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -25,7 +26,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-
+import { useNavigate } from "react-router";
+ 
 interface HistoryItem {
   id: string;
   fileName: string;
@@ -40,94 +42,101 @@ interface HistoryItem {
   };
   linesOfCode: number;
   score: number;
+  parsedResult: any;
 }
-
+ 
 export default function HistoryPage() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const historyData: HistoryItem[] = [
-    {
-      id: "1",
-      fileName: "UserAuthService.java",
-      date: "May 31, 2026",
-      timestamp: "2:45 PM",
-      status: "passed",
-      issues: { security: 0, bugs: 2, quality: 1, improvements: 3 },
-      linesOfCode: 245,
-      score: 87,
-    },
-    {
-      id: "2",
-      fileName: "PaymentController.java",
-      date: "May 31, 2026",
-      timestamp: "11:20 AM",
-      status: "warning",
-      issues: { security: 2, bugs: 3, quality: 4, improvements: 5 },
-      linesOfCode: 412,
-      score: 68,
-    },
-    {
-      id: "3",
-      fileName: "DatabaseConfig.java",
-      date: "May 30, 2026",
-      timestamp: "4:15 PM",
-      status: "critical",
-      issues: { security: 5, bugs: 2, quality: 3, improvements: 2 },
-      linesOfCode: 156,
-      score: 52,
-    },
-    {
-      id: "4",
-      fileName: "ApiClient.ts",
-      date: "May 30, 2026",
-      timestamp: "10:30 AM",
-      status: "passed",
-      issues: { security: 0, bugs: 1, quality: 2, improvements: 4 },
-      linesOfCode: 328,
-      score: 91,
-    },
-    {
-      id: "5",
-      fileName: "ValidationUtils.java",
-      date: "May 29, 2026",
-      timestamp: "3:00 PM",
-      status: "passed",
-      issues: { security: 0, bugs: 0, quality: 1, improvements: 2 },
-      linesOfCode: 189,
-      score: 95,
-    },
-    {
-      id: "6",
-      fileName: "EmailService.java",
-      date: "May 29, 2026",
-      timestamp: "9:45 AM",
-      status: "warning",
-      issues: { security: 1, bugs: 4, quality: 3, improvements: 3 },
-      linesOfCode: 267,
-      score: 72,
-    },
-    {
-      id: "7",
-      fileName: "SecurityFilter.java",
-      date: "May 28, 2026",
-      timestamp: "5:20 PM",
-      status: "critical",
-      issues: { security: 8, bugs: 2, quality: 2, improvements: 1 },
-      linesOfCode: 198,
-      score: 45,
-    },
-    {
-      id: "8",
-      fileName: "UserRepository.java",
-      date: "May 28, 2026",
-      timestamp: "2:10 PM",
-      status: "passed",
-      issues: { security: 0, bugs: 1, quality: 1, improvements: 5 },
-      linesOfCode: 134,
-      score: 89,
-    },
-  ];
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("http://localhost:8080/api/test/showcode");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      
+      const items: HistoryItem[] = data.map((entity: any) => {
+        let fileName = "CodeSnippet.txt";
+        if (entity.additionalInformation && entity.additionalInformation.includes("fileName:")) {
+          const match = entity.additionalInformation.match(/fileName:\s*([^;]+)/);
+          if (match) fileName = match[1].trim();
+        }
+
+        let status: "passed" | "warning" | "critical" = "passed";
+        let score = 100;
+        let issues = { security: 0, bugs: 0, quality: 0, improvements: 0 };
+        let parsedResult = null;
+
+        if (entity.analysisResult) {
+          try {
+            parsedResult = JSON.parse(entity.analysisResult);
+            if (parsedResult && parsedResult.metrics) {
+              issues = {
+                security: parsedResult.metrics.security || 0,
+                bugs: parsedResult.metrics.bugs || 0,
+                quality: parsedResult.metrics.quality || 0,
+                improvements: parsedResult.metrics.improvements || 0,
+              };
+            }
+            
+            const totalCritical = parsedResult.issues?.filter((i: any) => i.severity === "critical").length || 0;
+            const totalWarning = parsedResult.issues?.filter((i: any) => i.severity === "warning").length || 0;
+            
+            if (totalCritical > 0) {
+              status = "critical";
+              score = Math.max(30, 100 - totalCritical * 15 - totalWarning * 5);
+            } else if (totalWarning > 0) {
+              status = "warning";
+              score = Math.max(60, 100 - totalWarning * 8);
+            } else {
+              status = "passed";
+              score = 100 - (issues.improvements * 2);
+            }
+          } catch (e) {
+            console.error("Failed to parse analysis result:", e);
+          }
+        }
+
+        // Mock dates based on ID to look realistic
+        const dateObj = new Date();
+        dateObj.setDate(dateObj.getDate() - (data.length - (entity.id % data.length)));
+        const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        const timeStr = dateObj.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+        return {
+          id: entity.id.toString(),
+          fileName,
+          date: dateStr,
+          timestamp: timeStr,
+          status,
+          issues,
+          linesOfCode: entity.code ? entity.code.split("\n").length : 0,
+          score,
+          parsedResult: {
+            ...parsedResult,
+            code: entity.code
+          }
+        };
+      });
+
+      items.sort((a, b) => parseInt(b.id) - parseInt(a.id));
+      setHistoryData(items);
+    } catch (error) {
+      console.error("Error fetching history:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -252,110 +261,126 @@ export default function HistoryPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[600px] pr-4">
-              <div className="space-y-4">
-                {filteredHistory.map((item) => (
-                  <Card
-                    key={item.id}
-                    className="border-green-100 dark:border-gray-700 hover:shadow-md transition-shadow"
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-start gap-4 flex-1">
-                          <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-lg">
-                            <FileCode className="w-6 h-6 text-green-600 dark:text-green-400" />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">
-                              {item.fileName}
-                            </h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {item.date} at {item.timestamp} • {item.linesOfCode} lines
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {getStatusBadge(item.status)}
-                          <div className="text-right">
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Score
-                            </p>
-                            <p
-                              className={`text-xl font-bold ${getScoreColor(
-                                item.score
-                              )}`}
-                            >
-                              {item.score}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-4 gap-4 mb-4">
-                        <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                            Security
-                          </p>
-                          <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                            {item.issues.security}
-                          </p>
-                        </div>
-                        <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                            Bugs
-                          </p>
-                          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                            {item.issues.bugs}
-                          </p>
-                        </div>
-                        <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg border border-purple-200 dark:border-purple-800">
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                            Quality
-                          </p>
-                          <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                            {item.issues.quality}
-                          </p>
-                        </div>
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                            Improvements
-                          </p>
-                          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                            {item.issues.improvements}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 border-green-200 dark:border-gray-600 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Details
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 border-green-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Export PDF
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 bg-gray-50 dark:bg-gray-800/20 rounded-lg">
+                <Loader2 className="w-10 h-10 text-green-500 animate-spin mb-4" />
+                <p className="text-gray-600 dark:text-gray-400 font-medium">Loading review history...</p>
               </div>
-            </ScrollArea>
+            ) : filteredHistory.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center bg-gray-50 dark:bg-gray-800/20 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+                <FileCode className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+                <p className="text-gray-600 dark:text-gray-400 font-medium">No reviews found</p>
+                <p className="text-sm text-gray-400 max-w-xs mt-1">
+                  Upload or paste code in the Code Review tab to create your first analysis!
+                </p>
+              </div>
+            ) : (
+              <ScrollArea className="h-[600px] pr-4">
+                <div className="space-y-4">
+                  {filteredHistory.map((item) => (
+                    <Card
+                      key={item.id}
+                      className="border-green-100 dark:border-gray-700 hover:shadow-md transition-shadow"
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-start gap-4 flex-1">
+                            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-lg">
+                              <FileCode className="w-6 h-6 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">
+                                {item.fileName}
+                              </h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {item.date} at {item.timestamp} • {item.linesOfCode} lines
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {getStatusBadge(item.status)}
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Score
+                              </p>
+                              <p
+                                className={`text-xl font-bold ${getScoreColor(
+                                  item.score
+                                )}`}
+                              >
+                                {item.score}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-4 mb-4">
+                          <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                              Security
+                            </p>
+                            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                              {item.issues.security}
+                            </p>
+                          </div>
+                          <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                              Bugs
+                            </p>
+                            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                              {item.issues.bugs}
+                            </p>
+                          </div>
+                          <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg border border-purple-200 dark:border-purple-800">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                              Quality
+                            </p>
+                            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                              {item.issues.quality}
+                            </p>
+                          </div>
+                          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                              Improvements
+                            </p>
+                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                              {item.issues.improvements}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate("/analyze", { state: { result: item.parsedResult } })}
+                            className="flex-1 border-green-200 dark:border-gray-600 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 border-green-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Export PDF
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
           </CardContent>
         </Card>
       </div>

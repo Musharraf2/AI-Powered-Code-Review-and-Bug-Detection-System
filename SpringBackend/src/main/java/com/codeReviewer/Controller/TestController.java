@@ -11,6 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/test")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class TestController {
 
     private final TestService testService;

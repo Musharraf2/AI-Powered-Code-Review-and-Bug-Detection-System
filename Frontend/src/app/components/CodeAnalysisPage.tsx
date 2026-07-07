@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Layout } from "./Layout";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   RotateCcw,
 } from "lucide-react";
+import { useLocation } from "react-router";
 
 interface AIAgent {
   id: string;
@@ -56,12 +57,22 @@ interface AnalysisResult {
 }
 
 export default function CodeAnalysisPage() {
+  const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [code, setCode] = useState("");
   const [fileName, setFileName] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [dragActive, setDragActive] = useState(false);
+
+  useEffect(() => {
+    if (location.state && location.state.result) {
+      setResult(location.state.result);
+      if (location.state.result.code) {
+        setCode(location.state.result.code);
+      }
+    }
+  }, [location.state]);
 
   const [agents, setAgents] = useState<AIAgent[]>([
     {
@@ -141,82 +152,40 @@ export default function CodeAnalysisPage() {
   const analyzeCode = async () => {
     setIsAnalyzing(true);
 
-    // Mock API call - replace with Spring Boot endpoint
-    // const enabledAgents = agents.filter(a => a.enabled).map(a => a.id);
-    // const response = await fetch('http://localhost:8080/api/analyze', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ code, agents: enabledAgents })
-    // });
-
-    setTimeout(() => {
-      const mockResult: AnalysisResult = {
-        code,
-        highlights: [
-          { line: 3, severity: "critical" },
-          { line: 7, severity: "warning" },
-          { line: 12, severity: "info" },
-        ],
-        issues: [
-          {
-            id: "1",
-            agent: "Security Agent",
-            severity: "critical",
-            line: 3,
-            title: "Potential SQL Injection",
-            description:
-              "Direct string concatenation in SQL query allows SQL injection attacks. User input should be sanitized and parameterized queries should be used.",
-            oldCode: 'query = "SELECT * FROM users WHERE id = " + userId;',
-            newCode:
-              'PreparedStatement stmt = conn.prepareStatement("SELECT * FROM users WHERE id = ?");\nstmt.setInt(1, userId);',
-          },
-          {
-            id: "2",
-            agent: "Bug Detection",
-            severity: "warning",
-            line: 7,
-            title: "Null Pointer Exception Risk",
-            description:
-              "Accessing object property without null check may cause NullPointerException at runtime.",
-            oldCode: "String name = user.getName();",
-            newCode: 'String name = user != null ? user.getName() : "Unknown";',
-          },
-          {
-            id: "3",
-            agent: "Code Quality",
-            severity: "warning",
-            line: 12,
-            title: "Code Smell: Long Method",
-            description:
-              "This method has too many responsibilities. Consider breaking it down into smaller, focused methods for better maintainability.",
-            oldCode: "// Complex method with 50+ lines",
-            newCode:
-              "// Refactored into 3 smaller methods:\n// - validateInput()\n// - processData()\n// - handleResponse()",
-          },
-          {
-            id: "4",
-            agent: "Improvement Suggestions",
-            severity: "info",
-            line: 15,
-            title: "Use Modern Syntax",
-            description:
-              "Consider using enhanced for-loop or Stream API for better readability and performance.",
-            oldCode:
-              "for (int i = 0; i < list.size(); i++) {\n  process(list.get(i));\n}",
-            newCode: "list.forEach(item -> process(item));",
-          },
-        ],
-        metrics: {
-          security: 3,
-          bugs: 1,
-          quality: 2,
-          improvements: 5,
-        },
+    try {
+      const enabledAgents = agents.filter(a => a.enabled).map(a => a.name);
+      const payload = {
+        id: "ANALYSIS_" + Date.now(),
+        code: code,
+        AdditionalInformation: `fileName: ${fileName || "pasted_code.txt"}; agents: ${enabledAgents.join(", ")}`
       };
 
-      setResult(mockResult);
+      const response = await fetch("http://localhost:8080/api/test/save", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const text = await response.text();
+      const resultData = JSON.parse(text);
+
+      if (resultData && typeof resultData === "object" && "issues" in resultData) {
+        setResult(resultData);
+      } else {
+        throw new Error("Received invalid analysis result structure from backend.");
+      }
+    } catch (error: any) {
+      console.error("Analysis failed:", error);
+      alert("Analysis failed: " + error.message);
+    } finally {
       setIsAnalyzing(false);
-    }, 2000);
+    }
   };
 
   const exportToPDF = () => {

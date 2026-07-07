@@ -22,4 +22,8 @@ public class TestEntity {
     @Column(columnDefinition = "TEXT")
     private String processedText;
 
+    // NEW: Store the generated analysis results JSON
+    @Column(columnDefinition = "TEXT")
+    private String analysisResult;
+
 }
