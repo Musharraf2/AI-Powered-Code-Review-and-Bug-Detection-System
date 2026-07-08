@@ -3,6 +3,7 @@ package com.codeReviewer.Service;
 import com.codeReviewer.DTO.PayloadRequestDTO;
 import com.codeReviewer.Entity.TestEntity;
 import com.codeReviewer.Repository.TestRepository;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -29,17 +30,7 @@ public class TestService {
     //    2.
     public String processAndSave(PayloadRequestDTO dto) {
         // 1. Format the text for LangChain
-        String plainTextForAI = "[Code Review Document]\n" +
-                "ID: " + dto.getProvidedId() + "\n" +
-                "Code Snippet: " + dto.getCode() + "\n" +
-                "Context: " + dto.getAdditionalInformation();
-
-        // 2. Map to your Database Entity
-        TestEntity entity = new TestEntity();
-        entity.setProvidedId(dto.getProvidedId());
-        entity.setCode(dto.getCode());
-        entity.setAdditionalInformation(dto.getAdditionalInformation());
-        entity.setProcessedText(plainTextForAI);
+        TestEntity entity = getTestEntity(dto);
 
         // 3. Save to PostgreSQL
         TestEntity savedEntity = testRepository.save(entity);
@@ -82,5 +73,20 @@ public class TestService {
             testRepository.save(savedEntity);
             return fallbackResponse;
         }
+    }
+
+    private static @NonNull TestEntity getTestEntity(PayloadRequestDTO dto) {
+        String plainTextForAI = "[Code Review Document]\n" +
+                "ID: " + dto.getProvidedId() + "\n" +
+                "Code Snippet: " + dto.getCode() + "\n" +
+                "Context: " + dto.getAdditionalInformation();
+
+        // 2. Map to your Database Entity
+        TestEntity entity = new TestEntity();
+        entity.setProvidedId(dto.getProvidedId());
+        entity.setCode(dto.getCode());
+        entity.setAdditionalInformation(dto.getAdditionalInformation());
+        entity.setProcessedText(plainTextForAI);
+        return entity;
     }
 }
