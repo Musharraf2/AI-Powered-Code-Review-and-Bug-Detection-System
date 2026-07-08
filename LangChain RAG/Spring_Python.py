@@ -4,8 +4,10 @@ from typing import Optional
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_ollama import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings, ChatOllama
+from langchain_core.messages import SystemMessage, HumanMessage
 import os
+import json
 
 app = FastAPI()
 
@@ -15,6 +17,68 @@ FAISS_INDEX_PATH = "faiss_index"
 
 print("Initializing Ollama Embeddings...")
 embeddings = OllamaEmbeddings(model="nomic-embed-text")
+
+print("Initializing ChatOllama for Code Analysis (model: qwen2.5-coder:7b)...")
+llm = ChatOllama(model="qwen2.5-coder:7b", format="json", temperature=0.1)
+
+system_prompt = (
+    "You are a professional senior code reviewer and bug detection assistant.\n"
+    "Analyze the provided code carefully and identify ALL bugs, logical errors, compilation warnings, "
+    "syntax problems, security vulnerabilities, code quality issues, and potential improvements.\n\n"
+    "The code has been formatted with line number prefixes like '1: code line'. Use these line prefixes to identify the correct line numbers.\n\n"
+    "You MUST return a JSON object with the following structure:\n"
+    "{\n"
+    "  \"highlights\": [\n"
+    "    { \"line\": 12, \"severity\": \"critical\" }\n"
+    "  ],\n"
+    "  \"issues\": [\n"
+    "    {\n"
+    "      \"id\": \"issue-1\",\n"
+    "      \"agent\": \"Bug Detection\" | \"Security Agent\" | \"Code Quality\" | \"Improvement Suggestions\",\n"
+    "      \"severity\": \"critical\" | \"warning\" | \"info\",\n"
+    "      \"line\": 12,\n"
+    "      \"title\": \"<short title describing the issue>\",\n"
+    "      \"description\": \"<detailed explanation of the bug and how to fix it>\",\n"
+    "      \"oldCode\": \"<exact original line or lines with the issue, WITHOUT the line number prefix>\",\n"
+    "      \"newCode\": \"<exact suggested replacement line or lines, WITHOUT the line number prefix>\"\n"
+    "    }\n"
+    "  ],\n"
+    "  \"metrics\": {\n"
+    "    \"security\": 0,\n"
+    "    \"bugs\": 0,\n"
+    "    \"quality\": 0,\n"
+    "    \"improvements\": 0\n"
+    "  }\n"
+    "}\n\n"
+    "CRITICAL INSTRUCTIONS:\n"
+    "1. Do NOT limit your review to just one issue. Find and list ALL valid problems in the code. If there are 3 issues, the \"issues\" array must have 3 objects, \"highlights\" must have 3 corresponding entries, and the metrics counts must match.\n"
+    "2. Line numbers must be 1-based, pointing to the exact line number of the code line where the issue is found.\n"
+    "3. The 'agent' field must match the category of the issue:\n"
+    "   - 'Bug Detection': logical errors, compilation issues, runtime crash risks, bounds checks, index errors.\n"
+    "   - 'Security Agent': SQL injection, hardcoded credentials, buffer overflow risks, unsafe configuration.\n"
+    "   - 'Code Quality': code smells, console print statements instead of logging, long methods, naming conventions.\n"
+    "   - 'Improvement Suggestions': performance bottlenecks, modern syntax alternatives, cleaner loops.\n"
+    "4. Return ONLY the raw JSON object conforming to the schema. Do not include markdown code block formatting (such as ```json) in your response."
+)
+
+def analyze_code_with_llm(code: str) -> dict:
+    try:
+        # Prefix each line of code with its 1-based index to help LLM find exact line numbers
+        lines = code.split("\n")
+        numbered_code = "\n".join(f"{i+1}: {line}" for i, line in enumerate(lines))
+
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=f"Here is the code to review:\n\n{numbered_code}")
+        ]
+        response = llm.invoke(messages)
+        result = json.loads(response.content)
+        result["code"] = code
+        return result
+    except Exception as e:
+        print(f"Error calling Ollama LLM: {e}")
+        # Fallback to static analyzer if LLM fails
+        return analyze_code_statically(code)
 
 
 # --- PYDANTIC MODELS ---
@@ -176,7 +240,7 @@ async def receive_from_spring(data: ReceiverData):
         vector_store.save_local(FAISS_INDEX_PATH)
 
         # Generate and return dynamic code review results
-        return analyze_code_statically(data.code)
+        return analyze_code_with_llm(data.code)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Python pipeline failed: {str(e)}")

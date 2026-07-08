@@ -193,22 +193,7 @@ export default function CodeReviewPage() {
     }, 2000);
   };
 
-  const exportToPDF = () => {
-    // Mock PDF export - replace with actual Spring Boot endpoint
-    // fetch('http://localhost:8080/api/export-pdf', {
-    //   method: 'POST',
-    //   body: JSON.stringify(result)
-    // }).then(response => response.blob())
-    //   .then(blob => {
-    //     const url = window.URL.createObjectURL(blob);
-    //     const a = document.createElement('a');
-    //     a.href = url;
-    //     a.download = 'code-review.pdf';
-    //     a.click();
-    //   });
-    console.log("Exporting to PDF...");
-    alert("PDF export feature will be connected to Spring Boot backend");
-  };
+
 
   const getSeverityColor = (severity: "critical" | "warning" | "info") => {
     switch (severity) {
@@ -280,67 +265,15 @@ export default function CodeReviewPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="paste" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 bg-[#16213e]">
-                    <TabsTrigger value="upload" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload File
-                    </TabsTrigger>
-                    <TabsTrigger value="paste" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Paste Code
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="upload" className="mt-6">
-                    <div
-                      onDragEnter={handleDrag}
-                      onDragLeave={handleDrag}
-                      onDragOver={handleDrag}
-                      onDrop={handleDrop}
-                      className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer ${
-                        dragActive
-                          ? "border-cyan-400 bg-cyan-500/10"
-                          : "border-gray-600 hover:border-cyan-500/50"
-                      }`}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                      <p className="text-white mb-2">
-                        {fileName ? fileName : "Drop your code file here"}
-                      </p>
-                      <p className="text-sm text-gray-400">
-                        or click to browse
-                      </p>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="hidden"
-                        accept=".js,.jsx,.ts,.tsx,.java,.py,.cpp,.c,.cs"
-                        onChange={handleFileInput}
-                      />
-                    </div>
-                    {code && (
-                      <div className="mt-4 p-4 bg-[#16213e] rounded-lg border border-gray-700">
-                        <ScrollArea className="h-[300px]">
-                          <pre className="text-xs text-gray-300 font-mono">{code}</pre>
-                        </ScrollArea>
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="paste" className="mt-6">
-                    <Textarea
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      placeholder="// Paste your code here...
+                <Textarea
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="// Paste your code here...
 function example() {
   // Your code will be analyzed by AI agents
 }"
-                      className="font-mono text-sm min-h-[400px] bg-[#16213e] border-gray-700 text-gray-300 placeholder:text-gray-600"
-                    />
-                  </TabsContent>
-                </Tabs>
+                  className="font-mono text-sm min-h-[420px] bg-[#16213e] border-gray-700 text-white placeholder:text-gray-500 focus-visible:ring-cyan-500"
+                />
               </CardContent>
             </Card>
 
@@ -435,14 +368,6 @@ function example() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button
-              onClick={exportToPDF}
-              variant="outline"
-              className="border-cyan-500 text-cyan-400 hover:bg-cyan-500/10"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export PDF
-            </Button>
             <Button
               onClick={() => setResult(null)}
               variant="outline"

@@ -188,15 +188,7 @@ export default function CodeAnalysisPage() {
     }
   };
 
-  const exportToPDF = () => {
-    // Replace with Spring Boot endpoint
-    // fetch('http://localhost:8080/api/export-pdf', {
-    //   method: 'POST',
-    //   body: JSON.stringify(result)
-    // })
-    console.log("Exporting to PDF...");
-    alert("PDF export will be connected to Spring Boot backend");
-  };
+
 
   const resetAnalysis = () => {
     setResult(null);
@@ -252,78 +244,15 @@ export default function CodeAnalysisPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="paste" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 bg-green-50 dark:bg-gray-800">
-                    <TabsTrigger
-                      value="upload"
-                      className="data-[state=active]:bg-green-500 data-[state=active]:text-white"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload File
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="paste"
-                      className="data-[state=active]:bg-green-500 data-[state=active]:text-white"
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      Paste Code
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="upload" className="mt-6">
-                    <div
-                      onDragEnter={handleDrag}
-                      onDragLeave={handleDrag}
-                      onDragOver={handleDrag}
-                      onDrop={handleDrop}
-                      className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer ${
-                        dragActive
-                          ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                          : "border-green-200 dark:border-gray-600 hover:border-green-400 dark:hover:border-green-600"
-                      }`}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="w-12 h-12 mx-auto mb-4 text-green-500 dark:text-green-400" />
-                      <p className="text-gray-800 dark:text-white mb-2 font-medium">
-                        {fileName ? fileName : "Drop your code file here"}
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        or click to browse
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                        Supports: .java, .js, .ts, .py, .cpp, .cs
-                      </p>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="hidden"
-                        accept=".js,.jsx,.ts,.tsx,.java,.py,.cpp,.c,.cs"
-                        onChange={handleFileInput}
-                      />
-                    </div>
-                    {code && (
-                      <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-green-200 dark:border-gray-600">
-                        <ScrollArea className="h-[300px]">
-                          <pre className="text-xs text-gray-700 dark:text-gray-300 font-mono">
-                            {code}
-                          </pre>
-                        </ScrollArea>
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="paste" className="mt-6">
-                    <Textarea
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      placeholder="// Paste your code here...
+                <Textarea
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="// Paste your code here...
 function example() {
   // Your code will be analyzed by AI agents
 }"
-                      className="font-mono text-sm min-h-[420px] bg-gray-50 dark:bg-gray-800 border-green-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 placeholder:text-gray-500 dark:placeholder:text-gray-500 focus-visible:ring-green-500"
-                    />
-                  </TabsContent>
-                </Tabs>
+                  className="font-mono text-sm min-h-[420px] bg-gray-50 dark:bg-gray-800 border-green-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 placeholder:text-gray-500 dark:placeholder:text-gray-500 focus-visible:ring-green-500"
+                />
               </CardContent>
             </Card>
 
@@ -430,14 +359,6 @@ function example() {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button
-              onClick={exportToPDF}
-              variant="outline"
-              className="border-green-300 dark:border-green-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export PDF
-            </Button>
             <Button
               onClick={resetAnalysis}
               className="bg-green-500 hover:bg-green-600 text-white"
