@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI
 from pydantic import BaseModel
 from langchain_core.documents import Document

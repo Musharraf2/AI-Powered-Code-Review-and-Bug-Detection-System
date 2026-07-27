@@ -14,7 +14,7 @@ export function Layout({ children }: LayoutProps) {
   const { theme, setTheme } = useTheme();
 
   const handleLogout = () => {
-    navigate("/");
+    window.location.href = "http://localhost:8080/logout";
   };
 
   const navItems = [

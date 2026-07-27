@@ -59,7 +59,13 @@ export default function HistoryPage() {
   const fetchHistory = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:8080/api/test/showcode");
+      const response = await fetch("http://localhost:8080/api/test/showcode", {
+        credentials: "include",
+      });
+      if (response.status === 401) {
+        navigate("/");
+        return;
+      }
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

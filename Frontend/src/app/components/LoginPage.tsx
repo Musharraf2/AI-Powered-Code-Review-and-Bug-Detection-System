@@ -7,11 +7,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   const handleGoogleLogin = () => {
-    // Mock Google OAuth login
-    // In production, integrate with Google OAuth:
-    // window.location.href = 'http://localhost:8080/oauth2/authorization/google';
-    console.log("Initiating Google OAuth login...");
-    navigate("/dashboard");
+    window.location.href = "http://localhost:8080/oauth2/authorization/google";
   };
 
   return (

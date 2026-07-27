@@ -43,15 +43,41 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<StatItem[]>([]);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userName, setUserName] = useState("User");
 
   useEffect(() => {
+    fetchUserInfo();
     fetchDashboardData();
   }, []);
+
+  const fetchUserInfo = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/api/auth/user", {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.name) {
+          setUserName(data.name);
+        }
+      } else if (response.status === 401) {
+        navigate("/");
+      }
+    } catch (error) {
+      console.error("Error fetching user info:", error);
+    }
+  };
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:8080/api/test/showcode");
+      const response = await fetch("http://localhost:8080/api/test/showcode", {
+        credentials: "include",
+      });
+      if (response.status === 401) {
+        navigate("/");
+        return;
+      }
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -205,7 +231,7 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
-            Welcome back!
+            Welcome back, {userName}!
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
             Here's an overview of your code analysis activity

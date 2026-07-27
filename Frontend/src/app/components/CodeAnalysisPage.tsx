@@ -23,7 +23,7 @@ import {
   AlertTriangle,
   RotateCcw,
 } from "lucide-react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 
 interface AIAgent {
   id: string;
@@ -58,6 +58,7 @@ interface AnalysisResult {
 
 export default function CodeAnalysisPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [code, setCode] = useState("");
   const [fileName, setFileName] = useState("");
@@ -165,15 +166,26 @@ export default function CodeAnalysisPage() {
         headers: {
           "Content-Type": "application/json"
         },
+        credentials: "include",
         body: JSON.stringify(payload)
       });
+
+      if (response.status === 401) {
+        navigate("/");
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const text = await response.text();
-      const resultData = JSON.parse(text);
+      let resultData = JSON.parse(text);
+
+      // Handle double-encoded JSON if it was returned as a JSON string
+      if (typeof resultData === "string") {
+        resultData = JSON.parse(resultData);
+      }
 
       if (resultData && typeof resultData === "object" && "issues" in resultData) {
         setResult(resultData);
