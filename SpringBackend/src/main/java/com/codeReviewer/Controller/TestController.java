@@ -5,6 +5,8 @@ import com.codeReviewer.Entity.TestEntity;
 import com.codeReviewer.Service.TestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,16 +25,18 @@ public class TestController {
 
     //  1.
     @GetMapping("/showcode")
-    private List<TestEntity> putCode() {
-        return testService.showAllCode();
+    private List<TestEntity> putCode(@AuthenticationPrincipal OAuth2User principal) {
+        String email = principal != null ? principal.getAttribute("email") : "anonymous";
+        return testService.showAllCodeForUser(email);
     }
 
 
     //    2.
-    @PostMapping("/save") // Replace with your actual Postman mapping path
-    public ResponseEntity<String> saveAndIngest(@RequestBody PayloadRequestDTO dto) {
+    @PostMapping(value = "/save", produces = "application/json") // Replace with your actual Postman mapping path
+    public ResponseEntity<String> saveAndIngest(@RequestBody PayloadRequestDTO dto, @AuthenticationPrincipal OAuth2User principal) {
+        String email = principal != null ? principal.getAttribute("email") : "anonymous";
         // This captures the returned hardcoded string from the service layer
-        String result = testService.processAndSave(dto);
+        String result = testService.processAndSave(dto, email);
 
         // Send it directly back to Postman over HTTP
         return ResponseEntity.ok(result);

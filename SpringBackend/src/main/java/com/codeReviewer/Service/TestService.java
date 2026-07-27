@@ -22,15 +22,16 @@ public class TestService {
 
 //    This function automatically show all the document present in the DB
 
-    public List<TestEntity> showAllCode() {
-        return testRepository.findAll();
+    public List<TestEntity> showAllCodeForUser(String userEmail) {
+        return testRepository.findByUserEmail(userEmail);
     }
 
 
     //    2.
-    public String processAndSave(PayloadRequestDTO dto) {
+    public String processAndSave(PayloadRequestDTO dto, String userEmail) {
         // 1. Format the text for LangChain
         TestEntity entity = getTestEntity(dto);
+        entity.setUserEmail(userEmail);
 
         // 3. Save to PostgreSQL
         TestEntity savedEntity = testRepository.save(entity);

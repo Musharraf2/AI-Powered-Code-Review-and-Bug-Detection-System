@@ -13,6 +13,7 @@ public class TestEntity {
     private int id;
     private String providedId; // The ID from the frontend JSON
     private String codeLanguage;
+    private String userEmail;
     @Column(columnDefinition = "TEXT")
     private String code;
 
